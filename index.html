@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>תזכורות</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Heebo:wght@400;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0e0e10;
+      --surface:   #16161a;
+      --surface2:  #1c1c22;
+      --border:    #2a2a30;
+      --accent:    #c8f135;
+      --text:      #e8e8e8;
+      --muted:     #555;
+      --muted2:    #888;
+      --danger:    #ff3b3b;
+      --ok:        #3bff8a;
+      --row-hover: #1e1e24;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      min-height: 100vh;
+      padding: 0 0 80px;
+      direction: rtl;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(42,42,48,0.5) 39px, rgba(42,42,48,0.5) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(42,42,48,0.5) 39px, rgba(42,42,48,0.5) 40px);
+      background-size: 40px 40px;
+    }
+
+    /* ══════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════ */
+    .layout {
+      display: flex;
+      min-height: 100vh;
+      flex-direction: row-reverse; /* sidebar on right for RTL */
+    }
+
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 0 24px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 0 20px 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .sidebar-logo h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(200,241,53,0.2);
+      line-height: 1;
+    }
+    .sidebar-logo p {
+      font-size: 0.7rem;
+      color: var(--muted2);
+      margin-top: 5px;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 20px 8px;
+      font-weight: 700;
+    }
+
+    .lib-list { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; margin-bottom: 20px; }
+
+    .lib-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: none;
+      background: transparent;
+      color: var(--muted2);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem;
+      width: 100%;
+      text-align: right;
+      position: relative;
+    }
+    .lib-item:hover { background: var(--row-hover); color: var(--text); }
+    .lib-item.active { background: rgba(200,241,53,0.08); color: var(--accent); }
+    .lib-item.active .lib-dot { border-color: currentColor; }
+
+    .lib-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--muted);
+      flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .lib-item.active .lib-dot { background: var(--accent); border-color: var(--accent); }
+
+    .lib-count {
+      margin-right: auto;
+      font-size: 0.68rem;
+      background: var(--border);
+      color: var(--muted2);
+      border-radius: 999px;
+      padding: 1px 7px;
+      min-width: 22px;
+      text-align: center;
+    }
+    .lib-item.active .lib-count { background: rgba(200,241,53,0.15); color: var(--accent); }
+
+    .lib-delete-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--danger);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .lib-rename-btn {
+      display: none;
+      background: none;
+      border: none;
+      color: var(--muted2);
+      cursor: pointer;
+      font-size: 0.75rem;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .lib-rename-btn:hover { color: var(--accent); }
+    .lib-item:hover .lib-delete-btn,
+    .lib-item:hover .lib-rename-btn { display: block; }
+
+    /* inline rename input */
+    .lib-rename-input {
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.83rem;
+      padding: 2px 6px;
+      outline: none;
+      flex: 1;
+      min-width: 0;
+      text-align: right;
+    }
+
+    .add-lib-area { padding: 0 10px; margin-top: auto; }
+
+    .add-lib-form {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    .add-lib-form input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.82rem;
+      padding: 6px 8px;
+      outline: none;
+      text-align: right;
+      width: 100%;
+    }
+    .add-lib-form input:focus { border-color: var(--accent); }
+    .add-lib-form input::placeholder { color: var(--muted); }
+
+    .color-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .color-swatch {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .color-swatch:hover   { transform: scale(1.2); }
+    .color-swatch.selected { border-color: white; }
+
+    .add-lib-btn {
+      background: var(--accent);
+      color: #0e0e10;
+      border: none;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 7px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: background 0.15s;
+    }
+    .add-lib-btn:hover { background: #d8ff45; }
+
+    /* ══════════════════════════════════
+       MAIN CONTENT
+    ══════════════════════════════════ */
+    .main {
+      flex: 1;
+      padding: 40px 32px 60px;
+      overflow-x: hidden;
+    }
+
+    .main-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .main-header-left h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .lib-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 999px;
+      vertical-align: middle;
+    }
+    .main-header-left p {
+      color: var(--muted2);
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+
+    .add-task-btn {
+      flex-shrink: 0;
+      background: var(--accent);
+      color: #0e0e10;
+      border: none;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 800;
+      font-size: 0.88rem;
+      padding: 11px 20px;
+      cursor: pointer;
+      clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .add-task-btn:hover  { background: #d8ff45; transform: translateY(-1px); }
+    .add-task-btn:active { transform: translateY(0); }
+
+    /* ── Column headers ── */
+    .col-headers {
+      display: grid;
+      grid-template-columns: 80px 92px 150px 120px 180px 1fr;
+      gap: 10px;
+      padding: 0 14px 10px;
+      border-bottom: 1px solid var(--accent);
+    }
+    .col-headers span {
+      font-size: 0.65rem;
+      color: var(--accent);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .col-headers span:nth-child(1),
+    .col-headers span:nth-child(2) { text-align: center; }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 70px 0;
+      color: var(--muted2);
+      font-size: 0.9rem;
+      line-height: 2;
+      display: none;
+    }
+    .empty.visible { display: block; }
+    .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; opacity: 0.4; }
+
+    /* ── Task rows ── */
+    .task-list { display: flex; flex-direction: column; }
+
+    .task-row {
+      display: grid;
+      grid-template-columns: 80px 92px 150px 120px 180px 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s;
+      animation: rowIn 0.22s ease both;
+    }
+    .task-row:hover { background: var(--row-hover); }
+
+    @keyframes rowIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .task-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.92rem;
+      padding: 4px 0;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+      text-align: right;
+    }
+    .task-input::placeholder { color: var(--muted); font-style: italic; }
+    .task-input:focus { border-bottom-color: var(--accent); }
+
+    .url-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--muted2);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      padding: 4px 0;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s, color 0.15s;
+      text-align: left;
+      direction: ltr;
+    }
+    .url-input::placeholder { color: var(--muted); font-style: italic; }
+    .url-input:focus { border-bottom-color: var(--accent); color: var(--text); }
+    .url-input:not(:placeholder-shown) { color: #38bdf8; }
+    .url-input:not(:placeholder-shown):hover { text-decoration: underline; cursor: pointer; }
+
+    .date-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      padding: 5px 6px;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      direction: ltr;
+    }
+    .date-input:focus { border-color: var(--accent); }
+    .date-input::-webkit-calendar-picker-indicator { filter: invert(0.6); cursor: pointer; }
+
+    /* ── Category tag on row ── */
+    .row-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 999px;
+      white-space: nowrap;
+      cursor: pointer;
+      border: none;
+      font-family: 'Heebo', sans-serif;
+      transition: opacity 0.15s;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .row-tag:hover { opacity: 0.8; }
+
+    /* ── Status pill ── */
+    .status-pill {
+      width: 100%;
+      height: 30px;
+      border-radius: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      background: var(--border);
+      color: var(--muted2);
+    }
+    .status-pill.ok {
+      background: rgba(59,255,138,0.12);
+      color: var(--ok);
+      border: 1px solid rgba(59,255,138,0.25);
+    }
+    .status-pill.overdue {
+      background: rgba(255,59,59,0.2);
+      color: var(--danger);
+      border: 1px solid rgba(255,59,59,0.35);
+      animation: flashRed 1s ease-in-out infinite;
+    }
+    @keyframes flashRed {
+      0%, 100% { background: rgba(255,59,59,0.08); }
+      50%       { background: rgba(255,59,59,0.36); box-shadow: 0 0 12px rgba(255,59,59,0.3); }
+    }
+
+    .del-btn {
+      background: transparent;
+      border: 1px solid #2e2e36;
+      color: var(--muted);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.72rem;
+      padding: 5px 8px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.15s;
+      border-radius: 2px;
+    }
+    .del-btn:hover { border-color: var(--danger); color: var(--danger); background: rgba(255,59,59,0.07); }
+
+    /* ── Footer stats ── */
+    .footer-stats {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-top: 18px;
+      padding: 0 14px;
+      font-size: 0.68rem;
+      color: var(--muted2);
+      flex-wrap: wrap;
+    }
+    .footer-stats.visible { display: flex; }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.68rem;
+    }
+    .stat-chip b { color: var(--accent); }
+    .stat-chip.danger b { color: var(--danger); }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Tag picker modal ── */
+    .tag-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .tag-modal-backdrop.open { display: flex; }
+    .tag-modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 20px;
+      min-width: 240px;
+      max-width: 320px;
+      width: 90%;
+      direction: rtl;
+    }
+    .tag-modal h3 { font-size: 0.9rem; margin-bottom: 14px; color: var(--accent); }
+    .tag-option-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; }
+    .tag-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.85rem;
+      width: 100%;
+      text-align: right;
+      transition: background 0.12s;
+    }
+    .tag-option:hover { background: var(--row-hover); }
+    .tag-dot-sm {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+    .tag-modal-close {
+      margin-top: 14px;
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted2);
+      font-family: 'Heebo', sans-serif;
+      font-size: 0.8rem;
+      padding: 7px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: border-color 0.15s;
+    }
+    .tag-modal-close:hover { border-color: var(--muted2); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>תזכורות</h1>
+      <p>מנהל משימות חכם</p>
+    </div>
+
+    <div class="sidebar-section-title">ספריות</div>
+    <div class="lib-list" id="libList"></div>
+
+    <!-- Add library form -->
+    <div class="add-lib-area">
+      <div class="add-lib-form">
+        <div class="sidebar-section-title" style="padding:0 0 4px; font-size:0.58rem;">ספרייה חדשה</div>
+        <input type="text" id="libNameInput" placeholder="שם הספרייה..." maxlength="24"/>
+        <div class="color-row" id="colorRow"></div>
+        <button class="add-lib-btn" onclick="createLibrary()">+ הוסף ספרייה</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <main class="main">
+    <div class="main-header">
+      <div class="main-header-left">
+        <h2 id="mainTitle">כל המשימות</h2>
+        <p id="mainSubtitle">כל הספריות מוצגות</p>
+      </div>
+      <button class="add-task-btn" onclick="addTask()">+ הוסף משימה</button>
+    </div>
+
+    <div class="col-headers">
+      <span style="text-align:center">פעולה</span>
+      <span style="text-align:center">סטטוס</span>
+      <span>תאריך יעד</span>
+      <span>ספרייה</span>
+      <span>קישור</span>
+      <span>משימה</span>
+    </div>
+
+    <div class="empty" id="emptyState">
+      <span class="empty-icon">📋</span>
+      אין משימות בספרייה זו<br>לחץ על <strong>+ הוסף משימה</strong> כדי להתחיל
+    </div>
+    <div class="task-list" id="taskList"></div>
+
+    <div class="footer-stats" id="footerStats">
+      <div class="stat-chip"><b id="statTotal">0</b> משימות</div>
+      <div class="stat-chip"><b id="statOk">0</b> בזמן</div>
+      <div class="stat-chip danger"><b id="statOverdue">0</b> באיחור</div>
+    </div>
+  </main>
+</div>
+
+<!-- Tag picker modal -->
+<div class="tag-modal-backdrop" id="tagModal">
+  <div class="tag-modal">
+    <h3>בחר ספרייה למשימה</h3>
+    <div class="tag-option-list" id="tagOptionList"></div>
+    <button class="tag-modal-close" onclick="closeTagModal()">סגור</button>
+  </div>
+</div>
+
+<script>
+  // ── Palette of colours for libraries ──
+  const PALETTE = [
+    '#c8f135','#3bff8a','#38bdf8','#a78bfa',
+    '#fb923c','#f472b6','#facc15','#f87171'
+  ];
+
+  // ── State ──
+  let libraries   = [];   // { id, name, color }
+  let tasks       = [];   // { id, desc, date, libId }
+  let nextLibId   = 1;
+  let nextTaskId  = 1;
+  let activeLibId = null; // null = all
+  let tagTargetId = null; // task being re-tagged
+
+  // ── Init ──
+  let selectedColor = PALETTE[0];
+  buildColorRow();
+  seedData();
+  renderLibList();
+  renderTasks();
+
+  // ── Color row builder ──
+  function buildColorRow() {
+    const row = document.getElementById('colorRow');
+    row.innerHTML = '';
+    PALETTE.forEach(c => {
+      const s = document.createElement('div');
+      s.className = 'color-swatch' + (c === selectedColor ? ' selected' : '');
+      s.style.background = c;
+      s.title = c;
+      s.onclick = () => {
+        selectedColor = c;
+        buildColorRow();
+      };
+      row.appendChild(s);
+    });
+  }
+
+  // ── Seed demo data ──
+  function seedData() {
+    const libTech  = addLibrary('Tech',  '#38bdf8', false);
+    const libTodo  = addLibrary('TODO',  '#c8f135', false);
+    const libWork  = addLibrary('עבודה', '#a78bfa', false);
+
+    seedTask('בדיקת באגים בממשק הראשי', '2025-02-10', libTech, 'https://github.com/repo/issues/42');
+    seedTask('עדכון חבילות npm',         '2026-04-01', libTech, 'https://npmjs.com');
+    seedTask('כתיבת מסמך API',           '2026-03-15', libTech, 'https://docs.example.com');
+    seedTask('קניות לשבוע',              '2026-02-20', libTodo);
+    seedTask('תשלום חשבון חשמל',         '2025-01-31', libTodo);
+    seedTask('הכנת מצגת רבעונית',        '2026-02-28', libWork);
+    seedTask('סקירת בקשות משיכה',        '2026-03-01', libWork, 'https://github.com/pulls');
+  }
+
+  function seedTask(desc, date, libId, url = '') {
+    const id = nextTaskId++;
+    tasks.push({ id, desc, date, libId, url });
+  }
+
+  // ── Library management ──
+  function addLibrary(name, color, rerender = true) {
+    const id = nextLibId++;
+    libraries.push({ id, name, color });
+    if (rerender) { renderLibList(); renderTasks(); }
+    return id;
+  }
+
+  function createLibrary() {
+    const name = document.getElementById('libNameInput').value.trim();
+    if (!name) { document.getElementById('libNameInput').focus(); return; }
+    addLibrary(name, selectedColor);
+    document.getElementById('libNameInput').value = '';
+  }
+
+  function deleteLibrary(libId) {
+    if (!confirm('מחיקת הספרייה תסיר גם את כל המשימות שלה. להמשיך?')) return;
+    libraries = libraries.filter(l => l.id !== libId);
+    tasks     = tasks.filter(t => t.libId !== libId);
+    if (activeLibId === libId) activeLibId = null;
+    renderLibList();
+    renderTasks();
+  }
+
+  function selectLib(libId) {
+    activeLibId = libId;
+    renderLibList();
+    renderTasks();
+  }
+
+  function renderLibList() {
+    const list = document.getElementById('libList');
+    list.innerHTML = '';
+
+    // "All" item
+    const allItem = makeLibItem(null, 'כל המשימות', '#c8f135', tasks.length, activeLibId === null);
+    list.appendChild(allItem);
+
+    libraries.forEach(lib => {
+      const count = tasks.filter(t => t.libId === lib.id).length;
+      const item  = makeLibItem(lib.id, lib.name, lib.color, count, activeLibId === lib.id);
+      list.appendChild(item);
+    });
+  }
+
+  function makeLibItem(libId, name, color, count, isActive) {
+    const btn = document.createElement('button');
+    btn.className = 'lib-item' + (isActive ? ' active' : '');
+    btn.onclick = () => selectLib(libId);
+
+    const dot = document.createElement('div');
+    dot.className = 'lib-dot';
+    dot.style.background  = isActive ? color : 'transparent';
+    dot.style.borderColor = color;
+
+    const label = document.createElement('span');
+    label.textContent = name;
+    label.style.flex = '1';
+
+    const badge = document.createElement('span');
+    badge.className   = 'lib-count';
+    badge.textContent = count;
+
+    btn.appendChild(dot);
+    btn.appendChild(label);
+    btn.appendChild(badge);
+
+    if (libId !== null) {
+      // ── Rename button ──
+      const renameBtn = document.createElement('button');
+      renameBtn.className   = 'lib-rename-btn';
+      renameBtn.textContent = '✎';
+      renameBtn.title       = 'שנה שם';
+      renameBtn.onclick = (e) => {
+        e.stopPropagation();
+        startRename(libId, btn, dot, label, badge, renameBtn, delBtn);
+      };
+
+      // ── Delete button ──
+      const delBtn = document.createElement('button');
+      delBtn.className   = 'lib-delete-btn';
+      delBtn.textContent = '✕';
+      delBtn.title       = 'מחק ספרייה';
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteLibrary(libId); };
+
+      btn.appendChild(renameBtn);
+      btn.appendChild(delBtn);
+    }
+
+    return btn;
+  }
+
+  function startRename(libId, btn, dot, label, badge, renameBtn, delBtn) {
+    const lib = libraries.find(l => l.id === libId);
+    if (!lib) return;
+
+    // Swap label for input
+    const input = document.createElement('input');
+    input.className   = 'lib-rename-input';
+    input.type        = 'text';
+    input.value       = lib.name;
+    input.maxLength   = 24;
+
+    label.replaceWith(input);
+    badge.style.display    = 'none';
+    renameBtn.style.display = 'none';
+    delBtn.style.display    = 'none';
+    btn.onclick = null; // disable navigation while editing
+    input.focus();
+    input.select();
+
+    const commit = () => {
+      const newName = input.value.trim();
+      if (newName && newName !== lib.name) {
+        lib.name = newName;
+      }
+      renderLibList();
+      renderTasks();
+    };
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter')  { e.preventDefault(); commit(); }
+      if (e.key === 'Escape') { renderLibList(); } // cancel
+    });
+    input.addEventListener('blur', commit);
+    input.addEventListener('click', (e) => e.stopPropagation());
+  }
+
+  // ── Task management ──
+  function addTask() {
+    const id = nextTaskId++;
+    tasks.push({ id, desc: '', date: '', libId: activeLibId, url: '' });
+    renderTasks();
+    // Focus the new row's text input
+    setTimeout(() => {
+      const row = document.querySelector(`.task-row[data-id="${id}"] .task-input`);
+      if (row) row.focus();
+    }, 50);
+  }
+
+  function renderTasks() {
+    const list    = document.getElementById('taskList');
+    const empty   = document.getElementById('emptyState');
+    const titleEl = document.getElementById('mainTitle');
+    const subEl   = document.getElementById('mainSubtitle');
+    list.innerHTML = '';
+
+    const visible = activeLibId === null
+      ? tasks
+      : tasks.filter(t => t.libId === activeLibId);
+
+    // Update header
+    if (activeLibId === null) {
+      titleEl.innerHTML = 'כל המשימות';
+      subEl.textContent = 'כל הספריות מוצגות';
+    } else {
+      const lib = libraries.find(l => l.id === activeLibId);
+      if (lib) {
+        titleEl.innerHTML = `${escapeHtml(lib.name)} <span class="lib-badge" style="background:${lib.color}22;color:${lib.color};border:1px solid ${lib.color}44"><span style="width:8px;height:8px;border-radius:50%;background:${lib.color};display:inline-block"></span>${visible.length}</span>`;
+        subEl.textContent = `ספרייה: ${lib.name}`;
+      }
+    }
+
+    empty.classList.toggle('visible', visible.length === 0);
+
+    visible.forEach(task => {
+      const row = document.createElement('div');
+      row.className = 'task-row';
+      row.dataset.id = task.id;
+
+      const overdue     = isOverdue(task.date);
+      const statusClass = task.date ? (overdue ? 'overdue' : 'ok') : '';
+      const statusText  = task.date ? (overdue ? 'באיחור' : 'בזמן') : '—';
+      const lib         = libraries.find(l => l.id === task.libId);
+      const tagStyle    = lib
+        ? `background:${lib.color}22;color:${lib.color};border:1px solid ${lib.color}44`
+        : 'background:var(--border);color:var(--muted2)';
+      const tagLabel = lib ? lib.name : 'ללא ספרייה';
+
+      row.innerHTML = `
+        <button class="del-btn" onclick="deleteTask(${task.id})">מחק</button>
+        <div class="status-pill ${statusClass}" id="status-${task.id}">${statusText}</div>
+        <input class="date-input" type="date" value="${task.date}"
+               onchange="updateDate(${task.id}, this.value)" aria-label="תאריך יעד" />
+        <button class="row-tag" style="${tagStyle}" onclick="openTagModal(${task.id})"
+                title="שנה ספרייה">
+          <span style="width:7px;height:7px;border-radius:50%;background:${lib ? lib.color : 'var(--muted2)'};display:inline-block;flex-shrink:0"></span>
+          ${escapeHtml(tagLabel)}
+        </button>
+        <input class="url-input" type="url" placeholder="https://..."
+               value="${escapeAttr(task.url || '')}"
+               oninput="updateUrl(${task.id}, this.value)"
+               onclick="openUrl(${task.id})"
+               aria-label="קישור URL" />
+        <input class="task-input" type="text" placeholder="תאר את המשימה..."
+               value="${escapeAttr(task.desc)}"
+               oninput="updateDesc(${task.id}, this.value)"
+               aria-label="תיאור המשימה" />
+      `;
+      list.appendChild(row);
+    });
+
+    updateStats(visible);
+  }
+
+  function updateDesc(id, val) {
+    const t = tasks.find(t => t.id === id);
+    if (t) t.desc = val;
+  }
+
+  function updateUrl(id, val) {
+    const t = tasks.find(t => t.id === id);
+    if (t) t.url = val;
+  }
+
+  function openUrl(id) {
+    const t = tasks.find(t => t.id === id);
+    if (!t || !t.url || !t.url.trim()) return;
+    // Only open if it looks like a valid URL
+    const url = t.url.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  function updateDate(id, val) {
+    const t = tasks.find(t => t.id === id);
+    if (!t) return;
+    t.date = val;
+    refreshStatus(id);
+    updateStats(getVisible());
+  }
+
+  function refreshStatus(id) {
+    const t    = tasks.find(t => t.id === id);
+    const pill = document.getElementById(`status-${id}`);
+    if (!t || !pill) return;
+    const overdue = isOverdue(t.date);
+    if (!t.date) {
+      pill.className = 'status-pill';
+      pill.textContent = '—';
+    } else if (overdue) {
+      pill.className = 'status-pill overdue';
+      pill.textContent = 'באיחור';
+    } else {
+      pill.className = 'status-pill ok';
+      pill.textContent = 'בזמן';
+    }
+  }
+
+  function deleteTask(id) {
+    const row = document.querySelector(`.task-row[data-id="${id}"]`);
+    if (!row) return;
+    row.style.transition = 'opacity 0.18s, transform 0.18s';
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(-16px)';
+    setTimeout(() => {
+      row.remove();
+      tasks = tasks.filter(t => t.id !== id);
+      const vis = getVisible();
+      document.getElementById('emptyState').classList.toggle('visible', vis.length === 0);
+      updateStats(vis);
+      renderLibList();
+    }, 200);
+  }
+
+  function updateStats(visible) {
+    const el = document.getElementById('footerStats');
+    if (!visible || visible.length === 0) { el.classList.remove('visible'); return; }
+    el.classList.add('visible');
+    document.getElementById('statTotal').textContent   = visible.length;
+    document.getElementById('statOk').textContent      = visible.filter(t => t.date && !isOverdue(t.date)).length;
+    document.getElementById('statOverdue').textContent = visible.filter(t => t.date && isOverdue(t.date)).length;
+  }
+
+  // ── Tag modal ──
+  function openTagModal(taskId) {
+    tagTargetId = taskId;
+    const list = document.getElementById('tagOptionList');
+    list.innerHTML = '';
+
+    // "No library" option
+    const noneBtn = document.createElement('button');
+    noneBtn.className   = 'tag-option';
+    noneBtn.innerHTML   = `<div class="tag-dot-sm" style="background:var(--muted2)"></div>ללא ספרייה`;
+    noneBtn.onclick     = () => assignTag(null);
+    list.appendChild(noneBtn);
+
+    libraries.forEach(lib => {
+      const btn = document.createElement('button');
+      btn.className   = 'tag-option';
+      btn.innerHTML   = `<div class="tag-dot-sm" style="background:${lib.color}"></div>${escapeHtml(lib.name)}`;
+      btn.onclick     = () => assignTag(lib.id);
+      list.appendChild(btn);
+    });
+
+    document.getElementById('tagModal').classList.add('open');
+  }
+
+  function assignTag(libId) {
+    const t = tasks.find(t => t.id === tagTargetId);
+    if (t) t.libId = libId;
+    closeTagModal();
+    renderLibList();
+    renderTasks();
+  }
+
+  function closeTagModal() {
+    document.getElementById('tagModal').classList.remove('open');
+    tagTargetId = null;
+  }
+
+  document.getElementById('tagModal').addEventListener('click', function(e) {
+    if (e.target === this) closeTagModal();
+  });
+
+  // ── Helpers ──
+  function today()          { return new Date().toISOString().split('T')[0]; }
+  function isOverdue(d)     { return d ? d < today() : false; }
+  function getVisible()     { return activeLibId === null ? tasks : tasks.filter(t => t.libId === activeLibId); }
+  function escapeAttr(str)  { return String(str).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+  function escapeHtml(str)  { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // Auto-refresh statuses every minute
+  setInterval(() => {
+    tasks.forEach(t => refreshStatus(t.id));
+    updateStats(getVisible());
+  }, 60000);
+</script>
+</body>
+</html>
