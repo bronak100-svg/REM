@@ -289,7 +289,7 @@
     /* ── Column headers ── */
     .col-headers {
       display: grid;
-      grid-template-columns: 80px 92px 150px 120px 1fr;
+      grid-template-columns: 80px 92px 150px 120px 180px 1fr;
       gap: 10px;
       padding: 0 14px 10px;
       border-bottom: 1px solid var(--accent);
@@ -320,7 +320,7 @@
 
     .task-row {
       display: grid;
-      grid-template-columns: 80px 92px 150px 120px 1fr;
+      grid-template-columns: 80px 92px 150px 120px 180px 1fr;
       gap: 10px;
       align-items: center;
       padding: 9px 14px;
@@ -350,6 +350,25 @@
     }
     .task-input::placeholder { color: var(--muted); font-style: italic; }
     .task-input:focus { border-bottom-color: var(--accent); }
+
+    .url-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid transparent;
+      color: var(--muted2);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75rem;
+      padding: 4px 0;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s, color 0.15s;
+      text-align: left;
+      direction: ltr;
+    }
+    .url-input::placeholder { color: var(--muted); font-style: italic; }
+    .url-input:focus { border-bottom-color: var(--accent); color: var(--text); }
+    .url-input:not(:placeholder-shown) { color: #38bdf8; }
+    .url-input:not(:placeholder-shown):hover { text-decoration: underline; cursor: pointer; }
 
     .date-input {
       background: var(--surface);
@@ -560,6 +579,7 @@
       <span style="text-align:center">סטטוס</span>
       <span>תאריך יעד</span>
       <span>ספרייה</span>
+      <span>קישור</span>
       <span>משימה</span>
     </div>
 
@@ -631,18 +651,18 @@
     const libTodo  = addLibrary('TODO',  '#c8f135', false);
     const libWork  = addLibrary('עבודה', '#a78bfa', false);
 
-    seedTask('בדיקת באגים בממשק הראשי', '2025-02-10', libTech);
-    seedTask('עדכון חבילות npm',         '2026-04-01', libTech);
-    seedTask('כתיבת מסמך API',           '2026-03-15', libTech);
+    seedTask('בדיקת באגים בממשק הראשי', '2025-02-10', libTech, 'https://github.com/repo/issues/42');
+    seedTask('עדכון חבילות npm',         '2026-04-01', libTech, 'https://npmjs.com');
+    seedTask('כתיבת מסמך API',           '2026-03-15', libTech, 'https://docs.example.com');
     seedTask('קניות לשבוע',              '2026-02-20', libTodo);
     seedTask('תשלום חשבון חשמל',         '2025-01-31', libTodo);
     seedTask('הכנת מצגת רבעונית',        '2026-02-28', libWork);
-    seedTask('סקירת בקשות משיכה',        '2026-03-01', libWork);
+    seedTask('סקירת בקשות משיכה',        '2026-03-01', libWork, 'https://github.com/pulls');
   }
 
-  function seedTask(desc, date, libId) {
+  function seedTask(desc, date, libId, url = '') {
     const id = nextTaskId++;
-    tasks.push({ id, desc, date, libId });
+    tasks.push({ id, desc, date, libId, url });
   }
 
   // ── Library management ──
@@ -776,7 +796,7 @@
   // ── Task management ──
   function addTask() {
     const id = nextTaskId++;
-    tasks.push({ id, desc: '', date: '', libId: activeLibId });
+    tasks.push({ id, desc: '', date: '', libId: activeLibId, url: '' });
     renderTasks();
     // Focus the new row's text input
     setTimeout(() => {
@@ -834,6 +854,11 @@
           <span style="width:7px;height:7px;border-radius:50%;background:${lib ? lib.color : 'var(--muted2)'};display:inline-block;flex-shrink:0"></span>
           ${escapeHtml(tagLabel)}
         </button>
+        <input class="url-input" type="url" placeholder="https://..."
+               value="${escapeAttr(task.url || '')}"
+               oninput="updateUrl(${task.id}, this.value)"
+               onclick="openUrl(${task.id})"
+               aria-label="קישור URL" />
         <input class="task-input" type="text" placeholder="תאר את המשימה..."
                value="${escapeAttr(task.desc)}"
                oninput="updateDesc(${task.id}, this.value)"
@@ -848,6 +873,21 @@
   function updateDesc(id, val) {
     const t = tasks.find(t => t.id === id);
     if (t) t.desc = val;
+  }
+
+  function updateUrl(id, val) {
+    const t = tasks.find(t => t.id === id);
+    if (t) t.url = val;
+  }
+
+  function openUrl(id) {
+    const t = tasks.find(t => t.id === id);
+    if (!t || !t.url || !t.url.trim()) return;
+    // Only open if it looks like a valid URL
+    const url = t.url.trim();
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 
   function updateDate(id, val) {
